@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">SMS blocker</string>
+    <string name="nav_title">SMS BLOCKER</string>
+    <string name="all_sms_tab">ALL MESSAGES</string>
+    <string name="blocked_sms_tab">BLOCKED</string>
+    <string name="share">share</string>
+    <string name="send">send</string>
+    <string name="others">others_txt</string>
 </resources>

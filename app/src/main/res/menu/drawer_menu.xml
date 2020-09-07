@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+<!--    when grouped they become checkable-->
+    <group android:checkableBehavior="single">
+        <item android:id="@+id/nav_message"
+            android:icon="@drawable/ic_baseline_assignment_ind_24"
+            android:title="@string/all_sms_tab"/>
+        <item android:id="@+id/nav_blocked"
+            android:icon="@drawable/ic_baseline_block_24"
+            android:title="@string/blocked_sms_tab"/>
+    </group>
+
+    <item
+        android:title="@string/others">
+        <menu>
+            <item android:id="@+id/nav_share"
+                android:icon="@drawable/ic_baseline_share_24"
+                android:title="@string/share"/>
+            <item android:id="@+id/nav_send"
+                android:icon="@drawable/ic_baseline_send_24"
+                android:title="@string/send"/>
+        </menu>
+    </item>
+
+
+</menu>
