@@ -9,7 +9,13 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.ContentResolver;
+import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Telephony;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -67,12 +73,51 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 new TabLayout.OnTabSelectedListener() {
                     @Override
                     public void onTabSelected(TabLayout.Tab tab) {
-                                if(tab.getPosition() == 1){
-                                    sms_adapter = new SMS_Adapter(blocked_sms);
-                                }else {
-                                    sms_adapter = new SMS_Adapter(all_sms);
+                        if (tab.getPosition() == 1) {
+                            sms_adapter = new SMS_Adapter(blocked_sms);
+                        } else {
+                            all_sms.clear();
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                                final String myPackageName = getPackageName();
+                                if (!Telephony.Sms.getDefaultSmsPackage(getApplication()).equals(myPackageName)) {
+
+                                    Intent intent = new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
+                                    intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, myPackageName);
+                                    startActivityForResult(intent, 1);
+                                } else {
+                                    List<SMS_Model> lst = getAllSms();
+                                    for (SMS_Model l :
+                                            lst) {
+                                        all_sms.add(l.getMsg());
+                                    }
                                 }
-                                recyclerView.setAdapter(sms_adapter);
+                            } else {
+                                List<SMS_Model> lst = getAllSms();
+                                for (SMS_Model l :
+                                        lst) {
+                                    all_sms.add(l.getMsg());
+                                }
+                            }
+//                                    Cursor cursor = getContentResolver().query(Uri.parse("content://sms/inbox"),
+//                                            null, null, null, null);
+//
+//                                    if (cursor.moveToFirst()) { // must check the result to prevent exception
+//                                        do {
+//                                            String msgData = "";
+//                                            for(int idx=0;idx<cursor.getColumnCount();idx++)
+//                                            {
+//                                                msgData += " " + cursor.getColumnName(idx) + ":" + cursor.getString(idx);
+//                                            }
+//
+//                                            all_sms.add(msgData);
+//                                            // use msgData
+//                                        } while (cursor.moveToNext());
+//                                    } else {
+//                                        // empty box, no SMS
+//                                    }
+                        }
+                        sms_adapter = new SMS_Adapter(all_sms);
+                        recyclerView.setAdapter(sms_adapter);
                     }
 
                     @Override
@@ -89,11 +134,66 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
+    public List<SMS_Model> getAllSms() {
+        List<SMS_Model> lstSms = new ArrayList<SMS_Model>();
+        SMS_Model objSms = new SMS_Model();
+        Uri message = Uri.parse("content://sms/");
+        ContentResolver cr = this.getContentResolver();
+
+        Cursor c = cr.query(message, null, null, null, null);
+        this.startManagingCursor(c);
+        int totalSMS = c.getCount();
+
+        if (c.moveToFirst()) {
+            for (int i = 0; i < totalSMS; i++) {
+
+                objSms = new SMS_Model();
+                objSms.setId(c.getString(c.getColumnIndexOrThrow("_id")));
+                objSms.setAddress(c.getString(c
+                        .getColumnIndexOrThrow("address")));
+                objSms.setMsg(c.getString(c.getColumnIndexOrThrow("body")));
+                objSms.setReadState(c.getString(c.getColumnIndex("read")));
+                objSms.setTime(c.getString(c.getColumnIndexOrThrow("date")));
+                if (c.getString(c.getColumnIndexOrThrow("type")).contains("1")) {
+                    objSms.set_folderName("inbox");
+                } else {
+                    objSms.set_folderName("sent");
+                }
+
+                lstSms.add(objSms);
+                c.moveToNext();
+            }
+        }
+        // else {
+        // throw new RuntimeException("You have no SMS");
+        // }
+        c.close();
+
+        return lstSms;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1) {
+            if (resultCode == RESULT_OK) {
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    final String myPackageName = getPackageName();
+                    if (Telephony.Sms.getDefaultSmsPackage(this).equals(myPackageName)) {
+
+                        List<SMS_Model> lst = getAllSms();
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public void onBackPressed() {
-        if(drawer.isDrawerOpen(GravityCompat.START)){
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
-        }else {
+        } else {
             super.onBackPressed();
         }
 
