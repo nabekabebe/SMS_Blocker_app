@@ -47,6 +47,7 @@
         </com.google.android.material.tabs.TabLayout>
 
         <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_layout"
             android:layout_width="409dp"
             android:layout_height="625dp"
             app:layout_constraintBottom_toBottomOf="parent"

@@ -5,5 +5,9 @@
     <string name="blocked_sms_tab">BLOCKED</string>
     <string name="share">share</string>
     <string name="send">send</string>
-    <string name="others">others_txt</string>
+    <string name="others">Others</string>
+
+    <string name="navigation_drawer_open">navigation_drawer_open</string>
+    <string name="navigation_drawer_close">navigation_drawer_close</string>
+    <string name="update_db_txt">Update db</string>
 </resources>

@@ -12,17 +12,11 @@
             android:title="@string/blocked_sms_tab"/>
     </group>
 
-    <item
-        android:title="@string/others">
-        <menu>
-            <item android:id="@+id/nav_share"
-                android:icon="@drawable/ic_baseline_share_24"
-                android:title="@string/share"/>
-            <item android:id="@+id/nav_send"
-                android:icon="@drawable/ic_baseline_send_24"
-                android:title="@string/send"/>
-        </menu>
-    </item>
-
+    <item android:id="@+id/nav_updateDB"
+        android:icon="@drawable/ic_baseline_update_24"
+        android:title="@string/update_db_txt"/>
+    <item android:id="@+id/nav_share"
+        android:icon="@drawable/ic_baseline_share_24"
+        android:title="@string/share"/>
 
 </menu>
