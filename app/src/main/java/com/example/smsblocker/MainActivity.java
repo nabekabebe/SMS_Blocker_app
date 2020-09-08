@@ -4,18 +4,17 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.content.ContentResolver;
-import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.Telephony;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -23,19 +22,23 @@ import android.widget.Toast;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
 
-import java.lang.reflect.Array;
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+    public static Boolean read_perm_granted = false;
+    final int REQUEST_CODE_ASK_PERMISSION = 123;
 
     DrawerLayout drawer;
     TabLayout tabLayout;
     RecyclerView recyclerView;
     SMS_Adapter sms_adapter;
-    ArrayList<String> all_sms;
-    ArrayList<String> blocked_sms;
+    ArrayList<SMS_Model> all_sms;
+    ArrayList<SMS_Model> blocked_sms;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,15 +49,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         setSupportActionBar(toolbar);
         drawer = findViewById(R.id.drawer_layout);
         tabLayout = findViewById(R.id.tabLayout);
-        all_sms = new ArrayList<String>();
-        all_sms.addAll(Arrays.asList("abebe","chaltu","lama","lemi","magarsa"));
+        askSIMSReadPermissions();
 
-        blocked_sms = new ArrayList<String>();
-        blocked_sms.addAll(Arrays.asList("saksamu","fake","safsaf","tebelah","girma girma"));
+        all_sms = new ArrayList<SMS_Model>();
+        all_sms.addAll(getAllSms());
+
+        blocked_sms = new ArrayList<SMS_Model>();
+        SMS_Model fake = new SMS_Model();
+        fake.setAddress("None");
+        fake.setMsg("No blocked messages yet.");
+        blocked_sms.add(fake);
 
 
         ActionBarDrawerToggle toggler = new ActionBarDrawerToggle(this, drawer, toolbar,
-                R.string.navigation_drawer_open,R.string.navigation_drawer_close);
+                R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggler);
         toggler.syncState();
 
@@ -66,126 +74,103 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         recyclerView.setAdapter(sms_adapter);
 
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this,
-                LinearLayoutManager.VERTICAL,false);
+                LinearLayoutManager.VERTICAL, false);
         recyclerView.setLayoutManager(layoutManager);
 
-        tabLayout.addOnTabSelectedListener(
-                new TabLayout.OnTabSelectedListener() {
-                    @Override
-                    public void onTabSelected(TabLayout.Tab tab) {
-                        if (tab.getPosition() == 1) {
-                            sms_adapter = new SMS_Adapter(blocked_sms);
-                        } else {
-                            all_sms.clear();
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                                final String myPackageName = getPackageName();
-                                if (!Telephony.Sms.getDefaultSmsPackage(getApplication()).equals(myPackageName)) {
-
-                                    Intent intent = new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
-                                    intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, myPackageName);
-                                    startActivityForResult(intent, 1);
-                                } else {
-                                    List<SMS_Model> lst = getAllSms();
-                                    for (SMS_Model l :
-                                            lst) {
-                                        all_sms.add(l.getMsg());
-                                    }
-                                }
-                            } else {
-                                List<SMS_Model> lst = getAllSms();
-                                for (SMS_Model l :
-                                        lst) {
-                                    all_sms.add(l.getMsg());
-                                }
-                            }
-//                                    Cursor cursor = getContentResolver().query(Uri.parse("content://sms/inbox"),
-//                                            null, null, null, null);
-//
-//                                    if (cursor.moveToFirst()) { // must check the result to prevent exception
-//                                        do {
-//                                            String msgData = "";
-//                                            for(int idx=0;idx<cursor.getColumnCount();idx++)
-//                                            {
-//                                                msgData += " " + cursor.getColumnName(idx) + ":" + cursor.getString(idx);
-//                                            }
-//
-//                                            all_sms.add(msgData);
-//                                            // use msgData
-//                                        } while (cursor.moveToNext());
-//                                    } else {
-//                                        // empty box, no SMS
-//                                    }
-                        }
-                        sms_adapter = new SMS_Adapter(all_sms);
-                        recyclerView.setAdapter(sms_adapter);
-                    }
-
-                    @Override
-                    public void onTabUnselected(TabLayout.Tab tab) {
-
-                    }
-
-                    @Override
-                    public void onTabReselected(TabLayout.Tab tab) {
-
-                    }
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                switch (tab.getPosition()) {
+                    case 0:
+                        recyclerView.setAdapter(new SMS_Adapter(all_sms));
+                        break;
+                    case 1:
+                        recyclerView.setAdapter(new SMS_Adapter(blocked_sms));
+                        break;
+                    default:
+                        break;
                 }
-        );
+            }
 
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {
+
+            }
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+
+            }
+        });
+
+
+    }
+
+    public void askSIMSReadPermissions() {
+        if (ContextCompat.checkSelfPermission(getBaseContext(), "android.permission.READ_SMS")
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{"android.permission.READ_SMS"}, REQUEST_CODE_ASK_PERMISSION);
+        } else {
+            read_perm_granted = true;
+        }
     }
 
     public List<SMS_Model> getAllSms() {
-        List<SMS_Model> lstSms = new ArrayList<SMS_Model>();
-        SMS_Model objSms = new SMS_Model();
-        Uri message = Uri.parse("content://sms/");
-        ContentResolver cr = this.getContentResolver();
-
-        Cursor c = cr.query(message, null, null, null, null);
-        this.startManagingCursor(c);
-        int totalSMS = c.getCount();
-
-        if (c.moveToFirst()) {
-            for (int i = 0; i < totalSMS; i++) {
-
-                objSms = new SMS_Model();
-                objSms.setId(c.getString(c.getColumnIndexOrThrow("_id")));
-                objSms.setAddress(c.getString(c
-                        .getColumnIndexOrThrow("address")));
-                objSms.setMsg(c.getString(c.getColumnIndexOrThrow("body")));
-                objSms.setReadState(c.getString(c.getColumnIndex("read")));
-                objSms.setTime(c.getString(c.getColumnIndexOrThrow("date")));
-                if (c.getString(c.getColumnIndexOrThrow("type")).contains("1")) {
-                    objSms.set_folderName("inbox");
-                } else {
-                    objSms.set_folderName("sent");
-                }
-
-                lstSms.add(objSms);
-                c.moveToNext();
-            }
-        }
-        // else {
-        // throw new RuntimeException("You have no SMS");
-        // }
-        c.close();
-
-        return lstSms;
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1) {
-            if (resultCode == RESULT_OK) {
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    final String myPackageName = getPackageName();
-                    if (Telephony.Sms.getDefaultSmsPackage(this).equals(myPackageName)) {
-
-                        List<SMS_Model> lst = getAllSms();
+        List<SMS_Model> lstSms = new ArrayList<>();
+        if (read_perm_granted) {
+            Uri uri = Uri.parse("content://sms/inbox");
+            String[] all = new String[]{"_id", "address", "date", "body"};
+            Cursor c = getContentResolver().query(uri, all, null, null, null);
+            try {
+                if (c.moveToFirst()) {
+                    while (c.moveToNext()) {
+                        String id = c.getString(0);
+                        String address = c.getString(1);
+                        String date = c.getString(2);
+                        String body = c.getString(3);
+                        SMS_Model newSms = new SMS_Model();
+                        newSms.setId(id);
+                        newSms.setAddress(address);
+                        newSms.setMsg(body);
+                        String dateFormat = new SimpleDateFormat("MM/dd/yyyy")
+                                .format(new Date(Long.parseLong(date)));
+                        newSms.setDate(dateFormat);
+                        lstSms.add(newSms);
                     }
                 }
+                c.close();
+            } catch (NullPointerException npe) {
+                Log.d("No Message", "no message found in the inbox");
             }
+            return lstSms;
+        } else {
+            return null;
+        }
+    }
+
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+//        super.onActivityResult(requestCode, resultCode, data);
+//        if (requestCode == 1) {
+//            if (resultCode == RESULT_OK) {
+//
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+//                    final String myPackageName = getPackageName();
+//                    if (Telephony.Sms.getDefaultSmsPackage(this).equals(myPackageName)) {
+//
+//                        List<SMS_Model> lst = getAllSms();
+//                    }
+//                }
+//            }
+//        }
+//    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!read_perm_granted) {
+            askSIMSReadPermissions();
         }
     }
 

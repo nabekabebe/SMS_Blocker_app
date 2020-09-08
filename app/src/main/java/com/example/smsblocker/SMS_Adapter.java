@@ -10,43 +10,49 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-import java.util.zip.Inflater;
 
-public class SMS_Adapter  extends RecyclerView.Adapter<SMS_Adapter.SMS_View>{
-    ArrayList<String> names;
+public class SMS_Adapter extends RecyclerView.Adapter<SMS_Adapter.SMS_View> {
+    ArrayList<SMS_Model> messages;
 
-    public SMS_Adapter(ArrayList<String> names) {
-        this.names = names;
+    public SMS_Adapter(ArrayList<SMS_Model> names) {
+        this.messages = names;
     }
 
     @NonNull
     @Override
     public SMS_View onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         Context context = (Context) parent.getContext();
-        View view = LayoutInflater.from(context).inflate(R.layout.sms_list_row, parent,false);
+        View view = LayoutInflater.from(context).inflate(R.layout.sms_list_row, parent, false);
         return new SMS_View(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull SMS_View holder, int position) {
-        holder.onBind(names.get(position));
+        holder.onBind(messages.get(position));
     }
 
     @Override
     public int getItemCount() {
-        return names.size();
+        return messages.size();
     }
 
-    public class SMS_View extends RecyclerView.ViewHolder{
+    public class SMS_View extends RecyclerView.ViewHolder {
 
-        TextView title_view;
+        TextView text_address;
+        TextView text_msgBody;
+        TextView text_date;
+
         public SMS_View(@NonNull View itemView) {
             super(itemView);
-            title_view = (TextView) itemView.findViewById(R.id.title_txt);
+            text_address = (TextView) itemView.findViewById(R.id.txt_address);
+            text_msgBody = (TextView) itemView.findViewById(R.id.txt_msg);
+            text_date = (TextView) itemView.findViewById(R.id.txt_date);
         }
 
-        public void onBind(String title){
-            title_view.setText(title);
+        public void onBind(SMS_Model sms) {
+            text_address.setText(sms.getAddress());
+            text_msgBody.setText(sms.getMsg());
+            text_date.setText(sms.getDate());
         }
     }
 }

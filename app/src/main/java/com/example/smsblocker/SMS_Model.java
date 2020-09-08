@@ -5,8 +5,7 @@ public class SMS_Model {
     private String _address;
     private String _msg;
     private String _readState; //"0" for have not read sms and "1" for have read sms
-    private String _time;
-    private String _folderName;
+    private String date;
 
     public SMS_Model() {
     }
@@ -27,20 +26,8 @@ public class SMS_Model {
         return _readState;
     }
 
-    public String getTime() {
-        return _time;
-    }
-
-    public String getFolderName() {
-        return _folderName;
-    }
-
-    public String get_folderName() {
-        return _folderName;
-    }
-
-    public void set_folderName(String _folderName) {
-        this._folderName = _folderName;
+    public String getDate() {
+        return date;
     }
 
     public void setId(String id) {
@@ -59,7 +46,7 @@ public class SMS_Model {
         _readState = readState;
     }
 
-    public void setTime(String time) {
-        _time = time;
+    public void setDate(String time) {
+        date = time;
     }
 }
