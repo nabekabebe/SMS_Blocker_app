@@ -11,10 +11,13 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Telephony;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -32,6 +35,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     public static Boolean read_perm_granted = false;
     final int REQUEST_CODE_ASK_PERMISSION = 123;
+    final int REQUEST_CODE_ASK_DEFAULT = 3343;
 
     DrawerLayout drawer;
     TabLayout tabLayout;
@@ -39,6 +43,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     SMS_Adapter sms_adapter;
     ArrayList<SMS_Model> all_sms;
     ArrayList<SMS_Model> blocked_sms;
+    PhoneStateListener pp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,10 +54,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         setSupportActionBar(toolbar);
         drawer = findViewById(R.id.drawer_layout);
         tabLayout = findViewById(R.id.tabLayout);
+
         askSIMSReadPermissions();
 
-        all_sms = new ArrayList<SMS_Model>();
-        all_sms.addAll(getAllSms());
+        all_sms = new ArrayList<>();
+        SMS_Model d = new SMS_Model();
+        d.setAddress("Error");
+        if (getAllSms() == null) {
+            all_sms.add(d);
+        } else {
+            all_sms.addAll(getAllSms());
+        }
+
 
         blocked_sms = new ArrayList<SMS_Model>();
         SMS_Model fake = new SMS_Model();
@@ -68,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
 
         recyclerView = findViewById(R.id.recycler_layout);
         sms_adapter = new SMS_Adapter(all_sms);
@@ -107,13 +121,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void askSIMSReadPermissions() {
-        if (ContextCompat.checkSelfPermission(getBaseContext(), "android.permission.READ_SMS")
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{"android.permission.READ_SMS"}, REQUEST_CODE_ASK_PERMISSION);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            if (!Telephony.Sms.getDefaultSmsPackage(getApplicationContext()).equals(getApplicationContext().getPackageName())) {
+                //Store default sms package name
+                Intent setSmsAppIntent =
+                        new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
+                setSmsAppIntent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME,
+                        getPackageName());
+                startActivityForResult(setSmsAppIntent, REQUEST_CODE_ASK_DEFAULT);
+            } else {
+                if (ContextCompat.checkSelfPermission(getBaseContext(), "android.permission.READ_SMS")
+                        != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(MainActivity.this,
+                            new String[]{"android.permission.READ_SMS"}, REQUEST_CODE_ASK_PERMISSION);
+                } else {
+                    read_perm_granted = true;
+                }
+                Toast.makeText(MainActivity.this, "Already default", Toast.LENGTH_LONG).show();
+            }
         } else {
-            read_perm_granted = true;
+            Toast.makeText(MainActivity.this, "not default", Toast.LENGTH_LONG).show();
         }
+
     }
 
     public List<SMS_Model> getAllSms() {
@@ -149,22 +178,26 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-//    @Override
-//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-//        if (requestCode == 1) {
-//            if (resultCode == RESULT_OK) {
-//
-//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-//                    final String myPackageName = getPackageName();
-//                    if (Telephony.Sms.getDefaultSmsPackage(this).equals(myPackageName)) {
-//
-//                        List<SMS_Model> lst = getAllSms();
-//                    }
-//                }
-//            }
-//        }
-//    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            case REQUEST_CODE_ASK_DEFAULT:
+                Toast.makeText(MainActivity.this, "app become default result", Toast.LENGTH_LONG).show();
+                all_sms = new ArrayList<>();
+                SMS_Model d = new SMS_Model();
+                d.setAddress("Error");
+                if (getAllSms() == null) {
+                    all_sms.add(d);
+                } else {
+                    all_sms.addAll(getAllSms());
+                }
+                break;
+            default:
+                break;
+
+        }
+    }
 
     @Override
     protected void onResume() {
