@@ -1,6 +1,8 @@
 package com.example.smsblocker;
 
-public class SMS_Model {
+import java.io.Serializable;
+
+public class SMS_Model implements Serializable {
     private String _id;
     private String _address;
     private String _msg;
